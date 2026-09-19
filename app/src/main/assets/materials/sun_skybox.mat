@@ -1,0 +1,55 @@
+material {
+    name : "SunSkybox",
+    shadingModel : unlit,
+    vertexDomain : device,
+    depthWrite : false,
+    depthCulling : false,
+    culling : none,
+    blending : opaque,
+    variables : [
+        { name : eyeDirection, precision : high }
+    ],
+    parameters : [
+        { type : float3, name : sunDir,       precision : high },
+        { type : float,  name : sunRadiusDeg, precision : high },
+        { type : float,  name : sunIntensity, precision : high },
+        { type : float,  name : glowStrength, precision : high },
+        { type : float,  name : sunVisible,   precision : high },
+        { type : float3, name : sunColor,     precision : high },
+        { type : float3, name : skyZenith,    precision : high },
+        { type : float3, name : skyHorizon,   precision : high }
+    ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.worldPosition = getPosition();
+        vec3 clipPos = getPosition().xyz;
+        vec3 viewDir = mulMat4x4Float3(getViewFromClipMatrix(), clipPos).xyz;
+        material.eyeDirection.xyz = mulMat3x3Float3(getWorldFromViewMatrix(), viewDir);
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        highp vec3 dir = normalize(variable_eyeDirection.xyz);
+        highp vec3 sunDir = normalize(materialParams.sunDir);
+        highp float cosA = dot(dir, sunDir);
+        highp float h = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
+        highp vec3 sky = mix(materialParams.skyHorizon, materialParams.skyZenith, pow(h, 0.2));
+
+        highp float vis = clamp(materialParams.sunVisible, 0.0, 1.0);
+
+        highp float r = radians(materialParams.sunRadiusDeg);
+        highp float cosOut = cos(r);
+        highp float cosIn = cos(r * 0.85);
+        highp float disc = smoothstep(cosOut, cosIn, cosA) * vis;
+        highp float ca = max(cosA, 0.0);
+        highp float glow = (pow(ca, 500.0) + pow(ca, 6.0) * 0.25)
+                         * materialParams.glowStrength * vis;
+        highp vec3 col = sky + materialParams.sunColor * glow;
+        col = mix(col, materialParams.sunColor * materialParams.sunIntensity, disc);
+        material.baseColor = vec4(col, 1.0);
+    }
+}

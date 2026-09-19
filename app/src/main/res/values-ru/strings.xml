@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Money 3D: Обои</string>
+    <string name="wallpaper_label">Падающие деньги</string>
+    <string name="wallpaper_description">3D-живые обои с падающими купюрами на Filament</string>
+    <string name="btn_set_live_wallpaper">Установить как живые обои</string>
+    <string name="cd_settings">Настройки</string>
+    <string name="toast_open_settings_manually">Откройте настройки обоев вручную и выберите: %s</string>
+    <string name="settings_title">Настройки</string>
+    <string name="section_sun">Солнце</string>
+    <string name="setting_show_sun">Показывать солнце</string>
+    <string name="setting_intensity">Интенсивность</string>
+    <string name="setting_disk_size">Размер диска</string>
+    <string name="setting_glow">Свечение</string>
+    <string name="section_bills">Купюры</string>
+    <string name="setting_count">Количество</string>
+    <string name="setting_fall_speed">Скорость падения</string>
+    <string name="section_motion">Движение</string>
+    <string name="setting_sway_intensity">Интенсивность покачивания</string>
+    <string name="setting_spin_intensity">Интенсивность вращения</string>
+    <string name="setting_bend_deformation">Изгиб и деформация</string>
+    <string name="section_parallax">Параллакс</string>
+    <string name="setting_parallax_gyro">Параллакс (гироскоп)</string>
+    <string name="setting_sensitivity">Чувствительность</string>
+    <string name="btn_reset_defaults">Сбросить на рекомендованные</string>
+    <string name="btn_close">Закрыть</string>
+</resources>

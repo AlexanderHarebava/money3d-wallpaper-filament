@@ -1,0 +1,171 @@
+material {
+    name : "Bill",
+    instanced : true,
+    shadingModel : lit,
+    featureLevel : 1,
+    quality : default,
+    variables : [ billData ],
+    blending : opaque,
+    culling : none,
+    doubleSided : true,
+    colorWrite : true,
+    depthWrite : true,
+    depthCulling : true,
+    alphaToCoverage : false,
+    reflections : default,
+    specularAmbientOcclusion : simple,
+    multiBounceAmbientOcclusion : true,
+    clearCoatIorChange : true,
+    specularAntiAliasing : true,
+    specularAntiAliasingVariance : 0.15,
+    specularAntiAliasingThreshold : 0.2,
+    parameters : [
+        { type : sampler2d, name : frontMap,       precision : high },
+        { type : sampler2d, name : backMap,        precision : high },
+        { type : sampler2d, name : frontOrmMap,    precision : medium },
+        { type : sampler2d, name : backOrmMap,     precision : medium },
+        { type : sampler2d, name : frontNormalMap, precision : medium },
+        { type : sampler2d, name : backNormalMap,  precision : medium },
+
+        { type : float, name : timeBase,  precision : high },
+        { type : float, name : fallPhase, precision : high },
+        { type : float, name : spinPhase, precision : high },
+        { type : float, name : swayMult,  precision : high },
+        { type : float, name : spinMult,  precision : high },
+        { type : float, name : bendMult,  precision : high }
+    ]
+}
+
+vertex {
+    const int   GRID_X = 4;
+    const int   GRID_Y = 2;
+    const vec2  BILL     = vec2(0.156, 0.0663);
+    const float Y_TOP    =  3.5;
+    const float Y_BOTTOM = -1.5;
+    const float LOOP     = Y_TOP - Y_BOTTOM;
+    const float SPREAD_X = 2.8;
+    const float SPREAD_Z = 2.8;
+    const float PERIOD = 120.0;
+    const float W0 = 6.2831853 / PERIOD;
+
+    float hash11(float p) {
+        p = fract(p * 0.1031);
+        p *= p + 33.33;
+        p *= p + p;
+        return fract(p);
+    }
+
+    mat3 rotX(float a) { float c = cos(a), s = sin(a); return mat3(1.0,0.0,0.0,  0.0,c,s,  0.0,-s,c); }
+    mat3 rotY(float a) { float c = cos(a), s = sin(a); return mat3(c,0.0,-s,  0.0,1.0,0.0,  s,0.0,c); }
+    mat3 rotZ(float a) { float c = cos(a), s = sin(a); return mat3(c,s,0.0,  -s,c,0.0,  0.0,0.0,1.0); }
+
+    void materialVertex(inout MaterialVertexInputs material) {
+        int bill   = getInstanceIndex();
+        int vid    = getVertexIndex();
+        int tri    = vid / 6;
+        int corner = vid - tri * 6;
+        int cell   = tri / 2;
+        int halfT  = tri - cell * 2;
+        int cx     = cell - (cell / GRID_X) * GRID_X;
+        int cy     = cell / GRID_X;
+
+        vec2 g = (halfT == 0)
+            ? ((corner == 0) ? vec2(0.0, 0.0) : ((corner == 1) ? vec2(1.0, 0.0) : vec2(0.0, 1.0)))
+            : ((corner == 0) ? vec2(1.0, 0.0) : ((corner == 1) ? vec2(1.0, 1.0) : vec2(0.0, 1.0)));
+
+        vec2 uv = (vec2(float(cx), float(cy)) + g) / vec2(float(GRID_X), float(GRID_Y));
+
+        float fr = float(bill);
+
+        float t        = materialParams.timeBase;
+        float tFall    = materialParams.fallPhase;
+        float tSpin    = materialParams.spinPhase;
+        float swayMult = materialParams.swayMult;
+        float spinMult = materialParams.spinMult;
+        float bendMult = materialParams.bendMult;
+
+        float seed    = hash11(fr +   7.0);
+        float rx      = hash11(fr +  13.0);
+        float rz      = hash11(fr +  29.0);
+        float phase   = hash11(fr +  53.0) * 2.0 * PI;
+        float loops   = 1.0 + floor(hash11(fr +  71.0) * 3.0);
+        float fall    = LOOP * loops / PERIOD;
+        float kSway   = 1.0 + floor(hash11(fr +  89.0) * 3.0);
+        float kSwayZ  = kSway + 1.0;
+        float swayAmp = (0.10 + 0.28 * hash11(fr + 97.0)) * swayMult;
+        float kSpinY  = floor((hash11(fr + 113.0) - 0.5) * 9.0);
+        float kSpinX  = floor((hash11(fr + 131.0) - 0.5) * 7.0);
+        float kBend   = 3.0 + floor(hash11(fr + 149.0) * 5.0);
+        float bendAmp = (0.006 + 0.018 * hash11(fr + 167.0)) * bendMult;
+        float scl     = 0.85 + 0.30 * hash11(fr + 181.0);
+        float roughJ  = hash11(fr + 193.0);
+        float tintJ   = hash11(fr + 199.0);
+
+        float y = Y_BOTTOM + mod(seed * LOOP - fall * tFall, LOOP);
+        float x = (rx - 0.5) * SPREAD_X + sin(W0 * kSway  * t + phase) * swayAmp;
+        float z = (rz - 0.5) * SPREAD_Z + cos(W0 * kSwayZ * t + phase) * swayAmp * 0.55;
+        vec3 center = vec3(x, y, z);
+
+        mat3 R = rotY(W0 * kSpinY * tSpin + phase)
+               * rotX(W0 * kSpinX * tSpin + phase * 0.37)
+               * rotZ(sin(W0 * 2.0 * t + phase) * 0.5 * spinMult);
+
+        float argX = (uv.x * 2.0 - 1.0) * PI + W0 * kBend * t + phase;
+        float argY = uv.y * PI + W0 * (kBend - 1.0) * t;
+        float bend = sin(argX) * bendAmp + sin(argY) * bendAmp * 0.4;
+
+        vec3 local = vec3((uv.x - 0.5) * BILL.x * scl,
+                          (uv.y - 0.5) * BILL.y * scl,
+                          bend);
+
+        float slopeX = (cos(argX) * 2.0 * PI * bendAmp) / (BILL.x * scl);
+        float slopeY = (cos(argY) * PI * bendAmp * 0.4) / (BILL.y * scl);
+
+        vec3  nLocal = normalize(vec3(-slopeX, -slopeY, 1.0));
+        vec3 camUser = (getUserWorldFromWorldMatrix() * vec4(getWorldCameraPosition(), 1.0)).xyz;
+
+        material.worldPosition = vec4(center + R * local - camUser, 1.0);
+        material.worldNormal   = R * nLocal;
+        material.billData      = vec4(uv, roughJ, tintJ);
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        vec2  uv     = variable_billData.xy;
+        float roughJ = variable_billData.z;
+        float tintJ  = variable_billData.w;
+
+        vec4 base = gl_FrontFacing
+            ? texture(materialParams_frontMap, uv)
+            : texture(materialParams_backMap, vec2(1.0 - uv.x, uv.y));
+
+        material.baseColor.rgb = base.rgb * (0.85 + 0.30 * tintJ);
+        material.baseColor.a   = 1.0;
+
+        vec3 orm;
+        vec3 normalTex;
+        if (gl_FrontFacing) {
+            orm      = texture(materialParams_frontOrmMap, uv).rgb;
+            normalTex = texture(materialParams_frontNormalMap, uv).rgb;
+        } else {
+            vec2 backUV = vec2(1.0 - uv.x, uv.y);
+            orm      = texture(materialParams_backOrmMap, backUV).rgb;
+            normalTex = texture(materialParams_backNormalMap, backUV).rgb;
+            normalTex.r = 1.0 - normalTex.r;
+        }
+
+        material.metallic         = 0.0;
+        material.ambientOcclusion = orm.r;
+
+        float texRough = orm.g;
+        material.roughness = clamp(texRough * (0.8 + 0.4 * roughJ), 0.30, 0.95);
+
+        vec3 detailNormal = normalTex.xyz * 2.0 - 1.0;
+        detailNormal.xy *= 0.5;
+        detailNormal.z = max(detailNormal.z, 0.5);
+        material.normal = normalize(detailNormal);
+
+        prepareMaterial(material);
+    }
+}
