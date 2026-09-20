@@ -15,7 +15,8 @@ data class WallpaperSettings(
     val spinIntensity: Float = 1.0f,
     val bendIntensity: Float = 1.0f,
     val parallaxEnabled: Boolean = false,
-    val parallaxSensitivity: Float = 1.0f
+    val parallaxSensitivity: Float = 1.0f,
+    val maxFps: Int = 60
 )
 
 class SettingsRepository(context: Context) {
@@ -36,7 +37,8 @@ class SettingsRepository(context: Context) {
             spinIntensity = prefs.getFloat(KEY_SPIN, d.spinIntensity),
             bendIntensity = prefs.getFloat(KEY_BEND, d.bendIntensity),
             parallaxEnabled = prefs.getBoolean(KEY_PARALLAX_ENABLED, d.parallaxEnabled),
-            parallaxSensitivity = prefs.getFloat(KEY_PARALLAX_SENS, d.parallaxSensitivity)
+            parallaxSensitivity = prefs.getFloat(KEY_PARALLAX_SENS, d.parallaxSensitivity),
+            maxFps = prefs.getInt(KEY_MAX_FPS, d.maxFps).coerceIn(15, 120)
         )
     }
 
@@ -53,6 +55,7 @@ class SettingsRepository(context: Context) {
             .putFloat(KEY_BEND, s.bendIntensity)
             .putBoolean(KEY_PARALLAX_ENABLED, s.parallaxEnabled)
             .putFloat(KEY_PARALLAX_SENS, s.parallaxSensitivity)
+            .putInt(KEY_MAX_FPS, s.maxFps)
             .apply()
     }
 
@@ -69,5 +72,6 @@ class SettingsRepository(context: Context) {
         const val KEY_BEND = "bend_intensity"
         const val KEY_PARALLAX_ENABLED = "parallax_enabled"
         const val KEY_PARALLAX_SENS = "parallax_sensitivity"
+        const val KEY_MAX_FPS = "max_fps"
     }
 }

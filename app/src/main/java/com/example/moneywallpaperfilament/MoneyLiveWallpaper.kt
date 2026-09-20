@@ -96,6 +96,9 @@ class MoneyLiveWallpaper : WallpaperService() {
         private var fallSpeed = 1.0
         private var spinMultiplier = 1.0
 
+        private var maxFps = 60
+        private var lastRenderedFrameNanos = 0L
+
         override fun onCreate(surfaceHolder: SurfaceHolder) {
             super.onCreate(surfaceHolder)
 
@@ -332,6 +335,16 @@ class MoneyLiveWallpaper : WallpaperService() {
 
             parallax.sensitivity = newSettings.parallaxSensitivity
             parallax.setEnabled(newSettings.parallaxEnabled)
+
+            maxFps = newSettings.maxFps.coerceIn(15, 120)
+        }
+
+        private fun shouldRenderThisFrame(frameTimeNanos: Long): Boolean {
+            if (maxFps <= 0) return true
+            if (lastRenderedFrameNanos == 0L) return true
+
+            val minIntervalNanos = 1_000_000_000L / maxFps
+            return frameTimeNanos - lastRenderedFrameNanos >= minIntervalNanos
         }
 
         private fun reloadSettings() {
@@ -363,6 +376,7 @@ class MoneyLiveWallpaper : WallpaperService() {
             if (visible) {
                 reloadSettings()
                 lastFrameNanos = 0L
+                lastRenderedFrameNanos = 0L
                 parallax.onResume()
                 frameScheduler.post()
             } else {
@@ -464,11 +478,15 @@ class MoneyLiveWallpaper : WallpaperService() {
                     return
                 }
 
-                advanceAnimation(frameTimeNanos)
+                if (shouldRenderThisFrame(frameTimeNanos)) {
+                    lastRenderedFrameNanos = frameTimeNanos
 
-                if (renderer.beginFrame(sc, frameTimeNanos)) {
-                    renderer.render(view)
-                    renderer.endFrame()
+                    advanceAnimation(frameTimeNanos)
+
+                    if (renderer.beginFrame(sc, frameTimeNanos)) {
+                        renderer.render(view)
+                        renderer.endFrame()
+                    }
                 }
             }
         }

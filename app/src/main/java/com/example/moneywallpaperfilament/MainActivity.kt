@@ -80,8 +80,10 @@ class MainActivity : ComponentActivity() {
 
     @Entity
     private var keyLight = 0
+
     @Entity
     private var fillLight = 0
+
     @Entity
     private var bounceLight = 0
 
@@ -105,6 +107,10 @@ class MainActivity : ComponentActivity() {
 
     private var fallSpeed = 1.0
     private var spinMultiplier = 1.0
+
+    private var maxFps = 60
+    private var lastRenderedFrameNanos = 0L
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -239,6 +245,8 @@ class MainActivity : ComponentActivity() {
 
         parallax.sensitivity = newSettings.parallaxSensitivity
         parallax.setEnabled(newSettings.parallaxEnabled)
+
+        maxFps = newSettings.maxFps.coerceIn(15, 120)
     }
 
     private fun rebuildBillFieldIfChanged(count: Int) {
@@ -414,8 +422,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun shouldRenderThisFrame(frameTimeNanos: Long): Boolean {
+        if (maxFps <= 0) return true
+        if (lastRenderedFrameNanos == 0L) return true
+
+        val minIntervalNanos = 1_000_000_000L / maxFps
+        return frameTimeNanos - lastRenderedFrameNanos >= minIntervalNanos
+    }
+
     override fun onResume() {
         super.onResume()
+        lastFrameNanos = 0L
+        lastRenderedFrameNanos = 0L
         parallax.onResume()
         frameScheduler.post()
     }
@@ -466,10 +484,15 @@ class MainActivity : ComponentActivity() {
     inner class FrameCallback : ChoreographerHelper() {
         override fun onFrame(frameTimeNanos: Long) {
             if (uiHelper.isReadyToRender) {
-                advanceAnimation(frameTimeNanos)
-                if (renderer.beginFrame(swapChain!!, frameTimeNanos)) {
-                    renderer.render(view)
-                    renderer.endFrame()
+                if (shouldRenderThisFrame(frameTimeNanos)) {
+                    lastRenderedFrameNanos = frameTimeNanos
+
+                    advanceAnimation(frameTimeNanos)
+
+                    if (renderer.beginFrame(swapChain!!, frameTimeNanos)) {
+                        renderer.render(view)
+                        renderer.endFrame()
+                    }
                 }
             }
         }

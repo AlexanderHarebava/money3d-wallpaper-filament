@@ -36,7 +36,9 @@ import kotlin.math.roundToInt
 private const val MIN_BILLS = 50f
 private const val MAX_BILLS = 500f
 private const val BILL_STEP = 10f
-
+private const val MIN_FPS = 15f
+private const val MAX_FPS = 120f
+private const val FPS_STEP = 5f
 
 @Composable
 fun SettingsDialog(
@@ -167,6 +169,21 @@ fun SettingsDialog(
                 )
                 SectionDivider()
 
+                SectionTitle(stringResource(R.string.section_performance))
+
+                SliderRow(
+                    label = stringResource(R.string.setting_max_fps),
+                    value = settings.maxFps.toFloat(),
+                    range = MIN_FPS..MAX_FPS,
+                    steps = ((MAX_FPS - MIN_FPS) / FPS_STEP).toInt() - 1,
+                    valueLabel = { "${it.roundToInt()} FPS" },
+                    onValueChange = {
+                        onSettingsChange(settings.copy(maxFps = snapFps(it)))
+                    }
+                )
+
+                SectionDivider()
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -208,6 +225,10 @@ fun SettingsDialog(
 private fun snapBillCount(value: Float): Int =
     ((value / BILL_STEP).roundToInt() * BILL_STEP.toInt())
         .coerceIn(MIN_BILLS.toInt(), MAX_BILLS.toInt())
+
+private fun snapFps(value: Float): Int =
+    ((value / FPS_STEP).roundToInt() * FPS_STEP.toInt())
+        .coerceIn(MIN_FPS.toInt(), MAX_FPS.toInt())
 
 @Composable
 private fun SectionTitle(text: String) {

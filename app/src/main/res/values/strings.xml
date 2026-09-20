@@ -23,4 +23,6 @@
     <string name="setting_sensitivity">Sensitivity</string>
     <string name="btn_reset_defaults">Reset to defaults</string>
     <string name="btn_close">Close</string>
+    <string name="section_performance">Performance</string>
+    <string name="setting_max_fps">Maximum FPS</string>
 </resources>

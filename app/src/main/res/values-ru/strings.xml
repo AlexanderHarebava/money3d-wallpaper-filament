@@ -23,4 +23,6 @@
     <string name="setting_sensitivity">Чувствительность</string>
     <string name="btn_reset_defaults">Сбросить на рекомендованные</string>
     <string name="btn_close">Закрыть</string>
+    <string name="section_performance">Производительность</string>
+    <string name="setting_max_fps">Максимальный FPS</string>
 </resources>
